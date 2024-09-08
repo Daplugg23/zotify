@@ -36,6 +36,7 @@ PRINT_WARNINGS = 'PRINT_WARNINGS'
 RETRY_ATTEMPTS = 'RETRY_ATTEMPTS'
 CONFIG_VERSION = 'CONFIG_VERSION'
 DOWNLOAD_LYRICS = 'DOWNLOAD_LYRICS'
+SYNC_LYRICS_ONLY_MODE = 'SYNC_LYRICS_ONLY_MODE'
 
 # New configuration options
 SINGLE_TRACK_FOLDER = 'SINGLE_TRACK_FOLDER'
@@ -56,6 +57,7 @@ CONFIG_VALUES = {
     ROOT_PODCAST_PATH:          { 'default': '',      'type': str,  'arg': '--root-podcast-path'          },
     SPLIT_ALBUM_DISCS:          { 'default': 'False', 'type': bool, 'arg': '--split-album-discs'          },
     DOWNLOAD_LYRICS:            { 'default': 'True',  'type': bool, 'arg': '--download-lyrics'            },
+    SYNC_LYRICS_ONLY_MODE:      { 'default': 'True',  'type': bool, 'arg': '--sync-lyrics-only-mode'      },
     MD_SAVE_GENRES:             { 'default': 'False', 'type': bool, 'arg': '--md-save-genres'             },
     MD_ALLGENRES:               { 'default': 'False', 'type': bool, 'arg': '--md-allgenres'               },
     MD_GENREDELIMITER:          { 'default': ',',     'type': str,  'arg': '--md-genredelimiter'          },
@@ -215,6 +217,10 @@ class Config:
     @classmethod
     def get_download_lyrics(cls) -> bool:
         return cls.get(DOWNLOAD_LYRICS)
+
+    @classmethod
+    def get_sync_lyrics_only_mode(cls) -> bool:
+        return cls.get(SYNC_LYRICS_ONLY_MODE)
 
     @classmethod
     def get_bulk_wait_time(cls) -> int:

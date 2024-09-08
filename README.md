@@ -18,6 +18,7 @@
   - Improved Unicode handling for URLs and search queries
   - Enhanced metadata handling and customization options
   - Flexible file and folder naming conventions
+  - Sync lyrics for existing songs without re-downloading audio files (enabled by default)
 
 *Free accounts are limited to 160kbps. \
 **Audio files are NOT substituted with ones from other sources such as YouTube or Deezer, they are sourced directly. \
@@ -68,6 +69,7 @@ Be aware you have to set boolean values in the commandline like this: `--downloa
 | ROOT_PODCAST_PATH            | --root-podcast-path              |          | Directory where Zotify saves podcasts
 | SPLIT_ALBUM_DISCS            | --split-album-discs              | False    | Saves each disk in its own folder
 | DOWNLOAD_LYRICS              | --download-lyrics                | True     | Downloads synced lyrics in .lrc format, uses unsynced as fallback.
+| SYNC_LYRICS_ONLY_MODE        | --sync-lyrics-only-mode          | True     | Only download lyrics for existing songs, don't download audio files
 | MD_ALLGENRES                 | --md-allgenres                   | False    | Save all relevant genres in metadata
 | MD_GENREDELIMITER            | --md-genredelimiter              | ,        | Delimiter character used to split genres in metadata
 | DOWNLOAD_FORMAT              | --download-format                | ogg      | The download audio format (aac, fdk_aac, m4a, mp3, ogg, opus, vorbis)
@@ -97,6 +99,27 @@ Be aware you have to set boolean values in the commandline like this: `--downloa
 | ONLY_MAIN_ARTIST_IN_ARTIST_TAG| --only-main-artist-in-artist-tag| True     | Include only the main artist in the artist tag
 
 *very-high is limited to premium only  
+
+### Sync Lyrics Only Mode
+
+The `SYNC_LYRICS_ONLY_MODE` (or `--sync-lyrics-only-mode` in command line) is a feature that allows you to download only the lyrics for songs that already exist in your library, without re-downloading the audio files. This is particularly useful when you want to add lyrics to your existing music collection.
+
+This mode is enabled by default (set to `True`). When this mode is active:
+1. For existing songs in your library, Zotify will attempt to download only the lyrics.
+2. For new songs that don't exist in your library, Zotify will download both the audio file and the lyrics as usual.
+
+This feature works in conjunction with the `DOWNLOAD_LYRICS` option. Make sure `DOWNLOAD_LYRICS` is set to `True` for the `SYNC_LYRICS_ONLY_MODE` to have any effect.
+
+To disable this feature, you can either:
+1. Set `SYNC_LYRICS_ONLY_MODE` to `False` in your config file, or
+2. Use the `--sync-lyrics-only-mode=False` command line argument when running Zotify.
+
+Example usage to disable the feature:
+```
+zotify --sync-lyrics-only-mode=False <album/playlist URL>
+```
+
+This will download both audio and lyrics for all songs in the album or playlist, regardless of whether they already exist in your library.
 
 ### Configuration 
 
@@ -160,6 +183,7 @@ Create and run a container from the image:
 5. Added prompt for input when no URL is provided as an argument.
 6. Improved Unicode handling for URLs and search queries.
 7. Added a specific user agent for authentication to enable synced lyrics download.
+8. Introduced `SYNC_LYRICS_ONLY_MODE` to download lyrics for existing songs without re-downloading audio files (enabled by default).
 
 ### What do I do if I see "Your session has been terminated"?
 

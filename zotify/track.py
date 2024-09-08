@@ -229,10 +229,25 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
                 console.print(Panel(f"[yellow]Skipping: {song_name} (Song is unavailable)[/yellow]"))
                 Printer.update_download_progress('skipped')
             else:
-                if check_id and check_name and Zotify.CONFIG.get_skip_existing():
-                    prepare_download_loader.stop()
-                    console.print(Panel(f"[yellow]Skipping: {song_name} (Song already exists)[/yellow]"))
-                    Printer.update_download_progress('skipped')
+                sync_lyrics_only = Zotify.CONFIG.get_sync_lyrics_only_mode()
+                if check_id and check_name and (Zotify.CONFIG.get_skip_existing() or sync_lyrics_only):
+                    if sync_lyrics_only and Zotify.CONFIG.get_download_lyrics():
+                        lyrics_filename = PurePath(str(filename)[:-3] + "lrc")
+                        if Path(lyrics_filename).is_file():
+                            console.print(Text(f"Lyrics already exist for {name}", style="cyan"))
+                            Printer.update_download_progress('skipped')
+                        else:
+                            try:
+                                get_song_lyrics(track_id, lyrics_filename)
+                                console.print(Text(f"Lyrics downloaded for {name}", style="green"))
+                                Printer.update_download_progress('downloaded')
+                            except ValueError:
+                                console.print(Text(f"Lyrics not available for {name}", style="yellow"))
+                                Printer.update_download_progress('skipped')
+                    else:
+                        prepare_download_loader.stop()
+                        console.print(Panel(f"[yellow]Skipping: {song_name} (Song already exists)[/yellow]"))
+                        Printer.update_download_progress('skipped')
 
                 elif check_all_time and Zotify.CONFIG.get_skip_previously_downloaded():
                     prepare_download_loader.stop()
@@ -276,11 +291,15 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
                     genres = get_song_genres(raw_artists, name)
 
                     if(Zotify.CONFIG.get_download_lyrics()):
-                        try:
-                            get_song_lyrics(track_id, PurePath(str(filename)[:-3] + "lrc"))
-                            console.print(Text(f"Lyrics downloaded for {name}", style="green"))
-                        except ValueError:
-                            console.print(Text(f"Lyrics not available for {name}", style="yellow"))
+                        lyrics_filename = PurePath(str(filename)[:-3] + "lrc")
+                        if Path(lyrics_filename).is_file():
+                            console.print(Text(f"Lyrics already exist for {name}", style="cyan"))
+                        else:
+                            try:
+                                get_song_lyrics(track_id, lyrics_filename)
+                                console.print(Text(f"Lyrics downloaded for {name}", style="green"))
+                            except ValueError:
+                                console.print(Text(f"Lyrics not available for {name}", style="yellow"))
                     convert_audio_format(filename_temp)
                     try:
                         main_artist, title_with_featured = conv_artist_format(artists, name)
