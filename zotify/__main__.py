@@ -6,11 +6,19 @@ It's like youtube-dl, but for that other music platform.
 """
 
 import argparse
+import sys
+import io
 
 from zotify.app import client
 from zotify.config import CONFIG_VALUES
+from zotify.termoutput import Printer
 
 def main():
+    # Ensure proper Unicode handling for input and output
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
     parser = argparse.ArgumentParser(prog='zotify',
         description='A music and podcast downloader needing only python and ffmpeg.')
     parser.add_argument('-ns', '--no-splash',
@@ -25,10 +33,12 @@ def main():
     parser.add_argument('--password',
                         type=str,
                         help='Account password')
+    parser.add_argument('-v', '--verbose',
+                        action='store_true',
+                        help='Enable verbose output')
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('urls',
                        type=str,
-                       # action='extend',
                        default='',
                        nargs='*',
                        help='Downloads the track, album, playlist, podcast episode, or all albums by an artist from a url. Can take multiple urls.')
@@ -61,7 +71,14 @@ def main():
     parser.set_defaults(func=client)
 
     args = parser.parse_args()
+    
+    # Set verbose mode
+    Printer.set_verbose_mode(args.verbose)
+    
     args.func(args)
+
+    # Print summary after download is complete
+    Printer.print_summary()
 
 
 if __name__ == '__main__':

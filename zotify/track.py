@@ -12,12 +12,42 @@ from zotify.const import TRACKS, ALBUM, GENRES, NAME, ITEMS, DISC_NUMBER, TRACK_
     RELEASE_DATE, ID, TRACKS_URL, FOLLOWED_ARTISTS_URL, SAVED_TRACKS_URL, TRACK_STATS_URL, CODEC_MAP, EXT_MAP, DURATION_MS, \
     HREF, ARTISTS, WIDTH
 from zotify.termoutput import Printer, PrintChannel
-from zotify.utils import fix_filename, set_audio_tags, set_music_thumbnail, create_download_directory, \
+from zotify.utils import create_download_directory, \
     get_directory_song_ids, add_to_directory_song_ids, get_previously_downloaded, add_to_archive, fmt_seconds
 from zotify.zotify import Zotify
 import traceback
 from zotify.loader import Loader
+from zotify.metadata import sanitize_data, get_file_path, set_audio_tags, set_music_thumbnail, conv_artist_format
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.progress import Progress
 
+console = Console()
+
+class DownloadProgress:
+    def __init__(self, total_tracks):
+        self.total_tracks = total_tracks
+        self.downloaded_tracks = 0
+        self.skipped_tracks = 0
+        self.failed_tracks = 0
+        self.progress = Progress()
+        self.task = self.progress.add_task("[cyan]Downloading tracks...", total=total_tracks)
+
+    def update(self, status):
+        if status == 'downloaded':
+            self.downloaded_tracks += 1
+        elif status == 'skipped':
+            self.skipped_tracks += 1
+        elif status == 'failed':
+            self.failed_tracks += 1
+        self.progress.update(self.task, advance=1)
+
+    def start(self):
+        self.progress.start()
+
+    def stop(self):
+        self.progress.stop()
 
 def get_saved_tracks() -> list:
     """ Returns user's saved tracks """
@@ -94,7 +124,7 @@ def get_song_genres(rawartists: List[str], track_name: str) -> List[str]:
                     genres.append(artistInfo[GENRES][0])
 
             if len(genres) == 0:
-                Printer.print(PrintChannel.WARNINGS, '###    No Genres found for song ' + track_name)
+                console.print(Text(f"No genres found for song {track_name}", style="yellow"))
                 genres.append('')
 
             return genres
@@ -152,34 +182,17 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
     prepare_download_loader.start()
 
     try:
-        output_template = Zotify.CONFIG.get_output(mode)
-
         (artists, raw_artists, album_name, name, image_url, release_year, disc_number,
          track_number, scraped_song_id, is_playable, duration_ms) = get_song_info(track_id)
 
-        song_name = fix_filename(artists[0]) + ' - ' + fix_filename(name)
+        song_name = sanitize_data(artists[0]) + ' - ' + sanitize_data(name)
 
-        for k in extra_keys:
-            output_template = output_template.replace("{"+k+"}", fix_filename(extra_keys[k]))
-
-        ext = EXT_MAP.get(Zotify.CONFIG.get_download_format().lower())
-
-        output_template = output_template.replace("{artist}", fix_filename(artists[0]))
-        output_template = output_template.replace("{album}", fix_filename(album_name))
-        output_template = output_template.replace("{song_name}", fix_filename(name))
-        output_template = output_template.replace("{release_year}", fix_filename(release_year))
-        output_template = output_template.replace("{disc_number}", fix_filename(disc_number))
-        output_template = output_template.replace("{track_number}", fix_filename(track_number))
-        output_template = output_template.replace("{id}", fix_filename(scraped_song_id))
-        output_template = output_template.replace("{track_id}", fix_filename(track_id))
-        output_template = output_template.replace("{ext}", ext)
-
-        filename = PurePath(Zotify.CONFIG.get_root_path()).joinpath(output_template)
+        filename = get_file_path(artists[0], album_name, name, track_number, extra_keys.get('playlist_name'), mode == 'playlist', mode == 'single')
         filedir = PurePath(filename).parent
 
         filename_temp = filename
         if Zotify.CONFIG.get_temp_download_dir() != '':
-            filename_temp = PurePath(Zotify.CONFIG.get_temp_download_dir()).joinpath(f'zotify_{str(uuid.uuid4())}_{track_id}.{ext}')
+            filename_temp = PurePath(Zotify.CONFIG.get_temp_download_dir()).joinpath(f'zotify_{str(uuid.uuid4())}_{track_id}.{Path(filename).suffix}')
 
         check_name = Path(filename).is_file() and Path(filename).stat().st_size
         check_id = scraped_song_id in get_directory_song_ids(filedir)
@@ -194,28 +207,37 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
 
             filename = PurePath(filedir).joinpath(f'{fname}_{c}{ext}')
 
+        # Initialize download_progress if it doesn't exist
+        if Printer.download_progress is None:
+            total_tracks = int(extra_keys.get('total_tracks', 1))
+            Printer.init_download_progress(total_tracks)
+
     except Exception as e:
-        Printer.print(PrintChannel.ERRORS, '###   SKIPPING SONG - FAILED TO QUERY METADATA   ###')
-        Printer.print(PrintChannel.ERRORS, 'Track_ID: ' + str(track_id))
+        console.print(Panel(f"[red]Error: Skipping song - Failed to query metadata[/red]"))
+        console.print(f"[red]Track ID: {track_id}[/red]")
         for k in extra_keys:
-            Printer.print(PrintChannel.ERRORS, k + ': ' + str(extra_keys[k]))
-        Printer.print(PrintChannel.ERRORS, "\n")
-        Printer.print(PrintChannel.ERRORS, str(e) + "\n")
-        Printer.print(PrintChannel.ERRORS, "".join(traceback.TracebackException.from_exception(e).format()) + "\n")
+            console.print(f"[red]{k}: {extra_keys[k]}[/red]")
+        console.print("\n")
+        console.print(f"[red]{str(e)}[/red]\n")
+        console.print(Text("".join(traceback.TracebackException.from_exception(e).format()), style="red"))
+        Printer.update_download_progress('failed')
 
     else:
         try:
             if not is_playable:
                 prepare_download_loader.stop()
-                Printer.print(PrintChannel.SKIPS, '\n###   SKIPPING: ' + song_name + ' (SONG IS UNAVAILABLE)   ###' + "\n")
+                console.print(Panel(f"[yellow]Skipping: {song_name} (Song is unavailable)[/yellow]"))
+                Printer.update_download_progress('skipped')
             else:
                 if check_id and check_name and Zotify.CONFIG.get_skip_existing():
                     prepare_download_loader.stop()
-                    Printer.print(PrintChannel.SKIPS, '\n###   SKIPPING: ' + song_name + ' (SONG ALREADY EXISTS)   ###' + "\n")
+                    console.print(Panel(f"[yellow]Skipping: {song_name} (Song already exists)[/yellow]"))
+                    Printer.update_download_progress('skipped')
 
                 elif check_all_time and Zotify.CONFIG.get_skip_previously_downloaded():
                     prepare_download_loader.stop()
-                    Printer.print(PrintChannel.SKIPS, '\n###   SKIPPING: ' + song_name + ' (SONG ALREADY DOWNLOADED ONCE)   ###' + "\n")
+                    console.print(Panel(f"[yellow]Skipping: {song_name} (Song already downloaded once)[/yellow]"))
+                    Printer.update_download_progress('skipped')
 
                 else:
                     if track_id != scraped_song_id:
@@ -239,7 +261,6 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
                     ) as p_bar:
                         b = 0
                         while b < 5:
-                        #for _ in range(int(total_size / Zotify.CONFIG.get_chunk_size()) + 2):
                             data = stream.input_stream.stream().read(Zotify.CONFIG.get_chunk_size())
                             p_bar.update(file.write(data))
                             downloaded += len(data)
@@ -257,21 +278,24 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
                     if(Zotify.CONFIG.get_download_lyrics()):
                         try:
                             get_song_lyrics(track_id, PurePath(str(filename)[:-3] + "lrc"))
+                            console.print(Text(f"Lyrics downloaded for {name}", style="green"))
                         except ValueError:
-                            Printer.print(PrintChannel.SKIPS, f"###   Skipping lyrics for {song_name}: lyrics not available   ###")
+                            console.print(Text(f"Lyrics not available for {name}", style="yellow"))
                     convert_audio_format(filename_temp)
                     try:
-                        set_audio_tags(filename_temp, artists, genres, name, album_name, release_year, disc_number, track_number)
-                        set_music_thumbnail(filename_temp, image_url)
+                        main_artist, title_with_featured = conv_artist_format(artists, name)
+                        set_audio_tags(filename_temp, artists, title_with_featured, album_name, release_year, disc_number, track_number, main_artist)
+                        set_music_thumbnail(PurePath(filename_temp).parent, image_url)
                     except Exception:
-                        Printer.print(PrintChannel.ERRORS, "Unable to write metadata, ensure ffmpeg is installed and added to your PATH.")
+                        console.print(Text("Unable to write metadata, ensure ffmpeg is installed and added to your PATH.", style="red"))
 
                     if filename_temp != filename:
                         Path(filename_temp).rename(filename)
 
                     time_finished = time.time()
 
-                    Printer.print(PrintChannel.DOWNLOADS, f'###   Downloaded "{song_name}" to "{Path(filename).relative_to(Zotify.CONFIG.get_root_path())}" in {fmt_seconds(time_downloaded - time_start)} (plus {fmt_seconds(time_finished - time_downloaded)} converting)   ###' + "\n")
+                    console.print(Panel(f"[green]Downloaded:[/green] {song_name}\n[blue]To:[/blue] {Path(filename).relative_to(Zotify.CONFIG.get_root_path())}\n[cyan]Time:[/cyan] {fmt_seconds(time_downloaded - time_start)} (plus {fmt_seconds(time_finished - time_downloaded)} converting)"))
+                    Printer.print_track_info(track_number, Printer.download_progress.total_tracks, name, artists[0], f"{total_size / 1024 / 1024:.2f}MB", Zotify.DOWNLOAD_QUALITY)
 
                     # add song id to archive file
                     if Zotify.CONFIG.get_skip_previously_downloaded():
@@ -280,18 +304,21 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
                     if not check_id:
                         add_to_directory_song_ids(filedir, scraped_song_id, PurePath(filename).name, artists[0], name)
 
+                    Printer.update_download_progress('downloaded')
+
                     if Zotify.CONFIG.get_bulk_wait_time():
                         time.sleep(Zotify.CONFIG.get_bulk_wait_time())
         except Exception as e:
-            Printer.print(PrintChannel.ERRORS, '###   SKIPPING: ' + song_name + ' (GENERAL DOWNLOAD ERROR)   ###')
-            Printer.print(PrintChannel.ERRORS, 'Track_ID: ' + str(track_id))
+            console.print(Panel(f"[red]Error: Skipping {song_name} (General download error)[/red]"))
+            console.print(f"[red]Track ID: {track_id}[/red]")
             for k in extra_keys:
-                Printer.print(PrintChannel.ERRORS, k + ': ' + str(extra_keys[k]))
-            Printer.print(PrintChannel.ERRORS, "\n")
-            Printer.print(PrintChannel.ERRORS, str(e) + "\n")
-            Printer.print(PrintChannel.ERRORS, "".join(traceback.TracebackException.from_exception(e).format()) + "\n")
+                console.print(f"[red]{k}: {extra_keys[k]}[/red]")
+            console.print("\n")
+            console.print(f"[red]{str(e)}[/red]\n")
+            console.print(Text("".join(traceback.TracebackException.from_exception(e).format()), style="red"))
             if Path(filename_temp).exists():
                 Path(filename_temp).unlink()
+            Printer.update_download_progress('failed')
 
     prepare_download_loader.stop()
 
@@ -332,4 +359,4 @@ def convert_audio_format(filename) -> None:
             Path(temp_filename).unlink()
 
     except ffmpy.FFExecutableNotFoundError:
-        Printer.print(PrintChannel.WARNINGS, f'###   SKIPPING {file_codec.upper()} CONVERSION - FFMPEG NOT FOUND   ###')
+        console.print(Text(f"[yellow]SKIPPING {file_codec.upper()} CONVERSION - FFMPEG NOT FOUND[/yellow]"))

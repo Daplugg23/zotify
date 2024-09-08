@@ -37,6 +37,16 @@ RETRY_ATTEMPTS = 'RETRY_ATTEMPTS'
 CONFIG_VERSION = 'CONFIG_VERSION'
 DOWNLOAD_LYRICS = 'DOWNLOAD_LYRICS'
 
+# New configuration options
+SINGLE_TRACK_FOLDER = 'SINGLE_TRACK_FOLDER'
+SINGLE_TRACK_FORMAT = 'SINGLE_TRACK_FORMAT'
+ALBUM_FOLDER_FORMAT = 'ALBUM_FOLDER_FORMAT'
+ALBUM_TRACK_FORMAT = 'ALBUM_TRACK_FORMAT'
+PLAYLIST_FOLDER_FORMAT = 'PLAYLIST_FOLDER_FORMAT'
+PLAYLIST_TRACK_FORMAT = 'PLAYLIST_TRACK_FORMAT'
+ADD_FEATURED_ARTISTS_TO_TITLE = 'ADD_FEATURED_ARTISTS_TO_TITLE'
+ONLY_MAIN_ARTIST_IN_ARTIST_TAG = 'ONLY_MAIN_ARTIST_IN_ARTIST_TAG'
+
 CONFIG_VALUES = {
     SAVE_CREDENTIALS:           { 'default': 'True',  'type': bool, 'arg': '--save-credentials'           },
     CREDENTIALS_LOCATION:       { 'default': '',      'type': str,  'arg': '--credentials-location'       },
@@ -68,7 +78,16 @@ CONFIG_VALUES = {
     PRINT_API_ERRORS:           { 'default': 'True',  'type': bool, 'arg': '--print-api-errors'           },
     PRINT_PROGRESS_INFO:        { 'default': 'True',  'type': bool, 'arg': '--print-progress-info'        },
     PRINT_WARNINGS:             { 'default': 'True',  'type': bool, 'arg': '--print-warnings'             },
-    TEMP_DOWNLOAD_DIR:          { 'default': '',      'type': str,  'arg': '--temp-download-dir'          }
+    TEMP_DOWNLOAD_DIR:          { 'default': '',      'type': str,  'arg': '--temp-download-dir'          },
+    # New configuration options
+    SINGLE_TRACK_FOLDER:        { 'default': 'Singles', 'type': str, 'arg': '--single-track-folder'       },
+    SINGLE_TRACK_FORMAT:        { 'default': '{artist} - {title}', 'type': str, 'arg': '--single-track-format' },
+    ALBUM_FOLDER_FORMAT:        { 'default': '{artist} - {album}', 'type': str, 'arg': '--album-folder-format' },
+    ALBUM_TRACK_FORMAT:         { 'default': '{track_number} - {title}', 'type': str, 'arg': '--album-track-format' },
+    PLAYLIST_FOLDER_FORMAT:     { 'default': '{playlist_name}', 'type': str, 'arg': '--playlist-folder-format' },
+    PLAYLIST_TRACK_FORMAT:      { 'default': '{artist} - {title}', 'type': str, 'arg': '--playlist-track-format' },
+    ADD_FEATURED_ARTISTS_TO_TITLE: { 'default': 'True', 'type': bool, 'arg': '--add-featured-artists-to-title' },
+    ONLY_MAIN_ARTIST_IN_ARTIST_TAG: { 'default': 'True', 'type': bool, 'arg': '--only-main-artist-in-artist-tag' },
 }
 
 OUTPUT_DEFAULT_PLAYLIST = '{playlist}/{artist} - {song_name}.{ext}'
@@ -308,3 +327,36 @@ class Config:
     @classmethod
     def get_retry_attempts(cls) -> int:
         return cls.get(RETRY_ATTEMPTS)
+
+    # New methods for the added configuration options
+    @classmethod
+    def get_single_track_folder(cls) -> str:
+        return cls.get(SINGLE_TRACK_FOLDER)
+
+    @classmethod
+    def get_single_track_format(cls) -> str:
+        return cls.get(SINGLE_TRACK_FORMAT)
+
+    @classmethod
+    def get_album_folder_format(cls) -> str:
+        return cls.get(ALBUM_FOLDER_FORMAT)
+
+    @classmethod
+    def get_album_track_format(cls) -> str:
+        return cls.get(ALBUM_TRACK_FORMAT)
+
+    @classmethod
+    def get_playlist_folder_format(cls) -> str:
+        return cls.get(PLAYLIST_FOLDER_FORMAT)
+
+    @classmethod
+    def get_playlist_track_format(cls) -> str:
+        return cls.get(PLAYLIST_TRACK_FORMAT)
+
+    @classmethod
+    def get_add_featured_artists_to_title(cls) -> bool:
+        return cls.get(ADD_FEATURED_ARTISTS_TO_TITLE)
+
+    @classmethod
+    def get_only_main_artist_in_artist_tag(cls) -> bool:
+        return cls.get(ONLY_MAIN_ARTIST_IN_ARTIST_TAG)

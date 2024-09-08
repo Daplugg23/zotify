@@ -6,6 +6,8 @@ TRACKS_URL = 'https://api.spotify.com/v1/tracks'
 
 TRACK_STATS_URL = 'https://api.spotify.com/v1/audio-features/'
 
+ALBUM_URL = 'https://api.spotify.com/v1/albums/'
+
 TRACKNUMBER = 'tracknumber'
 
 DISCNUMBER = 'discnumber'
@@ -113,3 +115,5 @@ EXT_MAP = {
     'opus': 'ogg',
     'vorbis': 'ogg',
 }
+
+TOTAL = 'total'
