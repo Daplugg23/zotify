@@ -13,8 +13,11 @@
   - Downloads synced lyrics from the source
   - Option to download in real time to appear more legitimate***
   - Supports multiple audio formats
-  - Download directly from URL or use built-in in search
+  - Download directly from URL or use built-in search
   - Bulk downloads from a list of URLs in a text file or parsed directly as arguments
+  - Improved Unicode handling for URLs and search queries
+  - Enhanced metadata handling and customization options
+  - Flexible file and folder naming conventions
 
 *Free accounts are limited to 160kbps. \
 **Audio files are NOT substituted with ones from other sources such as YouTube or Deezer, they are sourced directly. \
@@ -84,6 +87,14 @@ Be aware you have to set boolean values in the commandline like this: `--downloa
 | PRINT_ERRORS                 | --print-errors                   | True     | Show errors
 | PRINT_DOWNLOADS              | --print-downloads                | False    | Print messages when a song is finished downloading
 | TEMP_DOWNLOAD_DIR            | --temp-download-dir              |          | Download tracks to a temporary directory first
+| SINGLE_TRACK_FOLDER          | --single-track-folder            | Singles  | Folder name for single tracks
+| SINGLE_TRACK_FORMAT          | --single-track-format            | {artist} - {title} | Format for single track filenames
+| ALBUM_FOLDER_FORMAT          | --album-folder-format            | {artist} - {album} | Format for album folder names
+| ALBUM_TRACK_FORMAT           | --album-track-format             | {track_number} - {title} | Format for album track filenames
+| PLAYLIST_FOLDER_FORMAT       | --playlist-folder-format         | {playlist_name} | Format for playlist folder names
+| PLAYLIST_TRACK_FORMAT        | --playlist-track-format          | {artist} - {title} | Format for playlist track filenames
+| ADD_FEATURED_ARTISTS_TO_TITLE| --add-featured-artists-to-title  | True     | Add featured artists to track titles
+| ONLY_MAIN_ARTIST_IN_ARTIST_TAG| --only-main-artist-in-artist-tag| True     | Include only the main artist in the artist tag
 
 *very-high is limited to premium only  
 
@@ -135,10 +146,23 @@ Create and run a container from the image:
   docker run --rm -v "$PWD/Zotify Music:/root/Music/Zotify Music" -v "$PWD/Zotify Podcasts:/root/Music/Zotify Podcasts" -it zotify
 ```
 
+### Recent Updates
+
+1. Enhanced metadata handling:
+   - Added options for customizing file and folder naming conventions.
+   - Improved handling of featured artists in track titles and tags.
+2. Improved file organization:
+   - Added separate configuration options for single tracks, album tracks, and playlist tracks.
+3. Enhanced error handling and output clarity:
+   - Suppressed redundant Spotify API Error messages.
+   - Simplified the lyrics download process to only show "Lyrics not available" messages when appropriate.
+4. Consistent behavior when running Zotify through the batch file or directly from the terminal.
+5. Added prompt for input when no URL is provided as an argument.
+6. Improved Unicode handling for URLs and search queries.
+
 ### What do I do if I see "Your session has been terminated"?
 
 If you see this, don't worry! Just try logging back in. If you see the incorrect username or password error, reset your password and you should be able to log back in.
-
 
 ### Will my account get banned if I use this tool?
 

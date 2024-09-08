@@ -74,7 +74,16 @@ def main():
     
     # Set verbose mode
     Printer.set_verbose_mode(args.verbose)
-    
+
+    # If no URLs are provided, prompt the user for input
+    if not args.urls and not args.liked_songs and not args.followed_artists and not args.playlist and not args.search and not args.download:
+        print("Enter Spotify URL or search query:")
+        user_input = input().strip()
+        if user_input.startswith('https://'):
+            args.urls = [user_input]
+        else:
+            args.search = user_input
+
     args.func(args)
 
     # Print summary after download is complete

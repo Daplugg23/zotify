@@ -135,28 +135,28 @@ def get_song_genres(rawartists: List[str], track_name: str) -> List[str]:
 
 
 def get_song_lyrics(song_id: str, file_save: str) -> None:
-    raw, lyrics = Zotify.invoke_url(f'https://spclient.wg.spotify.com/color-lyrics/v2/track/{song_id}')
+    try:
+        raw, lyrics = Zotify.invoke_url(f'https://spclient.wg.spotify.com/color-lyrics/v2/track/{song_id}')
 
-    if lyrics:
-        try:
+        if lyrics and 'lyrics' in lyrics:
             formatted_lyrics = lyrics['lyrics']['lines']
-        except KeyError:
-            raise ValueError(f'Failed to fetch lyrics: {song_id}')
-        if(lyrics['lyrics']['syncType'] == "UNSYNCED"):
-            with open(file_save, 'w+', encoding='utf-8') as file:
-                for line in formatted_lyrics:
-                    file.writelines(line['words'] + '\n')
-            return
-        elif(lyrics['lyrics']['syncType'] == "LINE_SYNCED"):
-            with open(file_save, 'w+', encoding='utf-8') as file:
-                for line in formatted_lyrics:
-                    timestamp = int(line['startTimeMs'])
-                    ts_minutes = str(math.floor(timestamp / 60000)).zfill(2)
-                    ts_seconds = str(math.floor((timestamp % 60000) / 1000)).zfill(2)
-                    ts_millis = str(math.floor(timestamp % 1000))[:2].zfill(2)
-                    file.writelines(f'[{ts_minutes}:{ts_seconds}.{ts_millis}]' + line['words'] + '\n')
-            return
-    raise ValueError(f'Failed to fetch lyrics: {song_id}')
+            if lyrics['lyrics']['syncType'] == "UNSYNCED":
+                with open(file_save, 'w+', encoding='utf-8') as file:
+                    for line in formatted_lyrics:
+                        file.writelines(line['words'] + '\n')
+                return
+            elif lyrics['lyrics']['syncType'] == "LINE_SYNCED":
+                with open(file_save, 'w+', encoding='utf-8') as file:
+                    for line in formatted_lyrics:
+                        timestamp = int(line['startTimeMs'])
+                        ts_minutes = str(math.floor(timestamp / 60000)).zfill(2)
+                        ts_seconds = str(math.floor((timestamp % 60000) / 1000)).zfill(2)
+                        ts_millis = str(math.floor(timestamp % 1000))[:2].zfill(2)
+                        file.writelines(f'[{ts_minutes}:{ts_seconds}.{ts_millis}]' + line['words'] + '\n')
+                return
+        raise ValueError("Lyrics not available")
+    except Exception:
+        raise ValueError("Lyrics not available")
 
 
 def get_song_duration(song_id: str) -> float:
@@ -307,7 +307,7 @@ def download_track(mode: str, track_id: str, extra_keys=None, disable_progressba
                     Printer.update_download_progress('downloaded')
 
                     if Zotify.CONFIG.get_bulk_wait_time():
-                        time.sleep(Zotify.CONFIG.get_bulk_wait_time())
+                        time.sleep(Zotify.CONFIG.get_bulk_wait_time() + 5)
         except Exception as e:
             console.print(Panel(f"[red]Error: Skipping {song_name} (General download error)[/red]"))
             console.print(f"[red]Track ID: {track_id}[/red]")
