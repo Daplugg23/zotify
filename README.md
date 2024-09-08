@@ -10,7 +10,7 @@
   - Downloads at up to 320kbps*
   - Downloads directly from the source**
   - Downloads podcasts, playlists, liked songs, albums, artists, singles.
-  - Downloads synced lyrics from the source
+  - Downloads synced lyrics from the source using a specific user agent to mimic legitimate browser requests
   - Option to download in real time to appear more legitimate***
   - Supports multiple audio formats
   - Download directly from URL or use built-in search
@@ -159,6 +159,7 @@ Create and run a container from the image:
 4. Consistent behavior when running Zotify through the batch file or directly from the terminal.
 5. Added prompt for input when no URL is provided as an argument.
 6. Improved Unicode handling for URLs and search queries.
+7. Added a specific user agent for authentication to enable synced lyrics download.
 
 ### What do I do if I see "Your session has been terminated"?
 
