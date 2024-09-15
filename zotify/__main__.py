@@ -8,9 +8,10 @@ It's like youtube-dl, but for that other music platform.
 import argparse
 import sys
 import io
+from pathlib import Path
 
 from zotify.app import client
-from zotify.config import CONFIG_VALUES
+from zotify.config import CONFIG_VALUES, Config
 from zotify.termoutput import Printer
 
 def main():
@@ -60,7 +61,9 @@ def main():
                        help='Loads search prompt to find then download a specific track, album or playlist')
     group.add_argument('-d', '--download',
                        type=str,
-                       help='Downloads tracks, playlists and albums from the URLs written in the file passed.')
+                       nargs='?',
+                       const='',
+                       help='Downloads tracks, playlists and albums from the URLs written in the file passed. If no file is specified, uses the default URL file from the configuration.')
 
     for configkey in CONFIG_VALUES:
         parser.add_argument(CONFIG_VALUES[configkey]['arg'],
@@ -72,11 +75,33 @@ def main():
 
     args = parser.parse_args()
     
+    # Load configuration
+    Config.load(args)
+    
     # Set verbose mode
     Printer.set_verbose_mode(args.verbose)
 
+    # Handle the download option
+    if args.download is not None:
+        if args.download == '':
+            # Use the default URL file from configuration
+            args.download = Config.get_default_url_file()
+        
+        # Check if the file exists
+        if not Path(args.download).is_file():
+            print(f"Error: URL file '{args.download}' not found.")
+            sys.exit(1)
+        
+        # Read URLs from the file
+        with open(args.download, 'r') as file:
+            args.urls = [line.strip() for line in file if line.strip()]
+        
+        if not args.urls:
+            print(f"Error: No URLs found in the file '{args.download}'.")
+            sys.exit(1)
+
     # If no URLs are provided, prompt the user for input
-    if not args.urls and not args.liked_songs and not args.followed_artists and not args.playlist and not args.search and not args.download:
+    if not args.urls and not args.liked_songs and not args.followed_artists and not args.playlist and not args.search:
         print("Enter Spotify URL or search query:")
         user_input = input().strip()
         if user_input.startswith('https://'):

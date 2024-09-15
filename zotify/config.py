@@ -48,6 +48,9 @@ PLAYLIST_TRACK_FORMAT = 'PLAYLIST_TRACK_FORMAT'
 ADD_FEATURED_ARTISTS_TO_TITLE = 'ADD_FEATURED_ARTISTS_TO_TITLE'
 ONLY_MAIN_ARTIST_IN_ARTIST_TAG = 'ONLY_MAIN_ARTIST_IN_ARTIST_TAG'
 
+# Add the new constant
+DEFAULT_URL_FILE = 'DEFAULT_URL_FILE'
+
 CONFIG_VALUES = {
     SAVE_CREDENTIALS:           { 'default': 'True',  'type': bool, 'arg': '--save-credentials'           },
     CREDENTIALS_LOCATION:       { 'default': '',      'type': str,  'arg': '--credentials-location'       },
@@ -90,6 +93,8 @@ CONFIG_VALUES = {
     PLAYLIST_TRACK_FORMAT:      { 'default': '{artist} - {title}', 'type': str, 'arg': '--playlist-track-format' },
     ADD_FEATURED_ARTISTS_TO_TITLE: { 'default': 'True', 'type': bool, 'arg': '--add-featured-artists-to-title' },
     ONLY_MAIN_ARTIST_IN_ARTIST_TAG: { 'default': 'True', 'type': bool, 'arg': '--only-main-artist-in-artist-tag' },
+    # Add the new configuration option
+    DEFAULT_URL_FILE:           { 'default': 'spotify_links.txt', 'type': str,  'arg': '--default-url-file'        },
 }
 
 OUTPUT_DEFAULT_PLAYLIST = '{playlist}/{artist} - {song_name}.{ext}'
@@ -154,19 +159,20 @@ class Config:
 
     @classmethod
     def parse_arg_value(cls, key: str, value: Any) -> Any:
-        if type(value) == CONFIG_VALUES[key]['type']:
+        if isinstance(value, CONFIG_VALUES[key]['type']):
             return value
-        if CONFIG_VALUES[key]['type'] == str:
+        if CONFIG_VALUES[key]['type'] is str:
             return str(value)
-        if CONFIG_VALUES[key]['type'] == int:
+        if CONFIG_VALUES[key]['type'] is int:
             return int(value)
-        if CONFIG_VALUES[key]['type'] == bool:
-            if str(value).lower() in ['yes', 'true', '1']:
-                return True
-            if str(value).lower() in ['no', 'false', '0']:
-                return False
-            raise ValueError("Not a boolean: " + value)
-        raise ValueError("Unknown Type: " + value)
+        if CONFIG_VALUES[key]['type'] is bool:
+            if isinstance(value, str):
+                if value.lower() in ['yes', 'true', '1']:
+                    return True
+                if value.lower() in ['no', 'false', '0']:
+                    return False
+            raise ValueError(f"Not a boolean: {value}")
+        raise ValueError(f"Unknown Type: {value}")
 
     @classmethod
     def get(cls, key: str) -> Any:
@@ -366,3 +372,7 @@ class Config:
     @classmethod
     def get_only_main_artist_in_artist_tag(cls) -> bool:
         return cls.get(ONLY_MAIN_ARTIST_IN_ARTIST_TAG)
+
+    @classmethod
+    def get_default_url_file(cls) -> str:
+        return cls.get(DEFAULT_URL_FILE)
